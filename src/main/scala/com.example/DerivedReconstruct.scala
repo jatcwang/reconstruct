@@ -19,7 +19,11 @@ object DerivedReconstruct {
 
   def dispatch[T](ctx: SealedTrait[Reconstruct, T]): Reconstruct[T] =
     new Reconstruct[T] {
-      override def showCode(t: T): String = ""
+      override def showCode(t: T): String = {
+        ctx.dispatch(t) { s =>
+          s.typeclass.showCode(s.)
+        }
+      }
     }
 
   implicit def gen[T]: Reconstruct[T] = macro Magnolia.gen[T]
