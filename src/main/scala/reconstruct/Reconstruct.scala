@@ -4,7 +4,8 @@ import java.net.URI
 import java.util.UUID
 
 import cats.data._
-import io.circe.Json
+import io.circe.numbers.BiggerDecimal
+import io.circe.{Json, JsonBiggerDecimal, JsonNumber, JsonObject}
 
 trait Reconstruct[T] {
   def showCode(input: T): String
@@ -65,12 +66,11 @@ object Reconstruct {
     }
   }
 
-  // TODOO:.empty call need type
-  def reconstructIterable[F[X] <: Iterable[X], A](className: String)(
-    implicit reconA: Reconstruct[A]
+  def reconstructIterable[F[X] <: Iterable[X], A](className: String, typeName: TypeName[A])(
+    implicit reconA: Reconstruct[A],
   ): Reconstruct[F[A]] = new Reconstruct[F[A]] {
     override def showCode(values: F[A]): String = {
-      if (values.isEmpty) className + ".empty"
+      if (values.isEmpty) className + s".empty[$typeName]"
       else {
         val builder = new StringBuilder
         builder
@@ -102,19 +102,19 @@ object Reconstruct {
     }
   }
 
-  implicit def reconstructSeq[A: Reconstruct]: Reconstruct[Seq[A]] = reconstructIterable("Seq")
+  implicit def reconstructSeq[A](implicit recon: Reconstruct[A], typeName: TypeName[A]): Reconstruct[Seq[A]] = reconstructIterable("Seq", typeName)
 
-  implicit def reconstructList[A: Reconstruct]: Reconstruct[List[A]] = reconstructIterable("List")
+  implicit def reconstructList[A](implicit recon: Reconstruct[A], typeName: TypeName[A]): Reconstruct[List[A]] = reconstructIterable("List", typeName)
 
-  implicit def reconstructVector[A: Reconstruct]: Reconstruct[Vector[A]] = reconstructIterable("Vector")
+  implicit def reconstructVector[A](implicit recon: Reconstruct[A], typeName: TypeName[A]): Reconstruct[Vector[A]] = reconstructIterable("Vector", typeName)
 
-  implicit def reconstructSet[A: Reconstruct]: Reconstruct[Set[A]] = reconstructIterable("Set")
+  implicit def reconstructSet[A](implicit recon: Reconstruct[A], typeName: TypeName[A]): Reconstruct[Set[A]] = reconstructIterable("Set", typeName)
 
   //TODOO: .empty call needs type
-  implicit def reconstructMap[K, V](implicit reconK: Reconstruct[K], reconV: Reconstruct[V]): Reconstruct[Map[K, V]] =
+  implicit def reconstructMap[K, V](implicit reconK: Reconstruct[K], reconV: Reconstruct[V], typeNameK: TypeName[K], typeNameV: TypeName[V]): Reconstruct[Map[K, V]] =
     new Reconstruct[Map[K, V]] {
       override def showCode(input: Map[K, V]): String = {
-        if (input.isEmpty) "Map.empty"
+        if (input.isEmpty) s"Map.empty[${typeNameK.value}, ${typeNameV.value}]"
         else {
           val builder = new StringBuilder
           builder.append("Map(")
@@ -192,12 +192,47 @@ object Reconstruct {
     }
   }
 
-  //TODOO: test
-//  implicit val reconstructJson: Reconstruct[Json] = new Reconstruct[Json] {
-//    override def showCode(input: Json): String = {
-//      s"io.circe.parser.parse(\"\"\"${input.noSpaces}\"\"\")"
-//    }
-//  }
+  implicit val reconstructJson: Reconstruct[Json] = {
+    val circeParserReconstructor: Reconstruct[Json] = new Reconstruct[Json] {
+      val prefix = s"parse(s" + "\"\"\""
+      val postfix = "\"\"\").right.get"
+      override def showCode(input: Json): String = {
+        s"$prefix${input.noSpaces}$postfix"
+      }
+    }
+
+    val folder = new Json.Folder[String] {
+      override def onNull: String = "Json.Null"
+
+      override def onBoolean(value: Boolean): String =
+        if (value) {
+          "Json.True"
+        } else "Json.False"
+
+      override def onNumber(value: JsonNumber): String = {
+        value.toInt
+          .map(n => s"Json.fromInt(${reconstructInt.showCode(n)})")
+          .orElse(
+            value.toLong.map(n => s"Json.fromLong(${reconstructLong.showCode(n)})")
+          )
+          .getOrElse(
+            circeParserReconstructor.showCode(Json.fromJsonNumber(value))
+          )
+      }
+
+      override def onString(value: String): String = {
+        s"Json.fromString(${reconstructString.showCode(value)})"
+      }
+
+      override def onArray(value: Vector[Json]): String = circeParserReconstructor.showCode(Json.fromValues(value))
+
+      override def onObject(value: JsonObject): String = circeParserReconstructor.showCode(Json.fromJsonObject(value))
+    }
+
+    new Reconstruct[Json] {
+      override def showCode(input: Json): String = input.foldWith(folder)
+    }
+  }
 
   //TODOO: convert all to use this
   private def appendForEach[A](
@@ -220,7 +255,7 @@ object Reconstruct {
       .append(reconV.showCode(keyVal._2))
   }
 
-  //TODOO: EitherT?
+  // TODOO: EitherT?
   // TODOO: solve type inference for Some/None, Map.empty etc
   // TODOO: better test for string reconstruct
   // TODOO tuple instances

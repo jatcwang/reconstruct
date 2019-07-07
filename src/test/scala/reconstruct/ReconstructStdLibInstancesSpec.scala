@@ -120,7 +120,7 @@ class ReconstructStdLibInstancesSpec extends ReconstructSuite {
     }
 
     "Empty collection outputs .empty" in {
-      assert(Reconstruct[Seq[Double]].showCode(Seq.empty[Double]) == "Seq.empty")
+      assert(Reconstruct[Seq[Double]].showCode(Seq.empty[Double]) == "Seq.empty[Double]")
     }
   }
 
@@ -132,7 +132,7 @@ class ReconstructStdLibInstancesSpec extends ReconstructSuite {
     }
 
     "Empty collection outputs .empty" in {
-      assert(Reconstruct[List[Double]].showCode(List.empty[Double]) == "List.empty")
+      assert(Reconstruct[List[Double]].showCode(List.empty[Double]) == "List.empty[Double]")
     }
   }
 
@@ -144,7 +144,7 @@ class ReconstructStdLibInstancesSpec extends ReconstructSuite {
     }
 
     "Empty collection outputs .empty" in {
-      assert(Reconstruct[Vector[Double]].showCode(Vector.empty[Double]) == "Vector.empty")
+      assert(Reconstruct[Vector[Double]].showCode(Vector.empty[Double]) == "Vector.empty[Double]")
     }
   }
 
@@ -155,8 +155,8 @@ class ReconstructStdLibInstancesSpec extends ReconstructSuite {
       }
     }
 
-    "Empty collection outputs .empty" in {
-      assert(Reconstruct[Set[Double]].showCode(Set.empty[Double]) == "Set.empty")
+    "Empty collection outputs .empty[A]" in {
+      assert(Reconstruct[Set[Double]].showCode(Set.empty[Double]) == "Set.empty[Double]")
     }
   }
 
@@ -168,7 +168,7 @@ class ReconstructStdLibInstancesSpec extends ReconstructSuite {
     }
 
     "Empty collection outputs .empty" in {
-      assert(Reconstruct[Map[String, String]].showCode(Map.empty[String, String]) == "Map.empty")
+      assert(Reconstruct[Map[String, Int]].showCode(Map.empty[String, Int]) == "Map.empty[String, Int]")
     }
   }
 
