@@ -16,6 +16,7 @@ val root = Project("root", file("."))
 
       "org.typelevel" %% "cats-laws" % "2.0.0-M4" % "test",
       "io.circe" %% "circe-parser" % "0.11.1" % "test", //TODOO: delme
+      "io.circe" %% "circe-testing" % "0.11.1" % "test", //TODOO: delme
       "org.scalatest" %% "scalatest" % "3.0.7" % "test",
       "org.scalacheck" %% "scalacheck" % "1.14.0" % "test",
     )
